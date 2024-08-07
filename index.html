@@ -120,7 +120,7 @@
         scene.add(ceiling);
 
         // Viele Lichter an der Decke hinzufügen
-        const numLights = 5;
+        const numLights = 2;
         const lightDistance = 30;
         for (let i = 0; i < numLights; i++) {
             const ceilingLight = new THREE.PointLight(0xffffff, 1.5, 30);
@@ -328,7 +328,7 @@
         scene.add(healthBarContainer);
 
         // Gesundheitsvariablen
-        let enemyHealth = 40;
+        let enemyHealth = 100;
         const maxEnemyHealth = 100;
 
         // Geschwindigkeit der feindlichen Figur
