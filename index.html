@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Spiel mit Three.js</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+        #camararotationdegreerange {
+            position: fixed;
+            top: 65%;
+            right: -2%;
+            width: 20%;
+            transform: rotate(90deg);
+        }
+        #jumpbutton{
+            position: fixed;
+            right: 10px;
+            bottom: 10px;
+            height: 150px;
+            width: 150px;
+            border: none;
+            background: none;
+            color: white;
+            font-size: 4em;
+        }
+        #playerandcamerarotationslider{
+            position: fixed;
+            left: 265px;
+            bottom: 5%;
+            width: 40%;
+        }
+        #move{
+            height: 250px;
+            width: 250px;
+            position: fixed;
+            left: 20px;
+            bottom: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.5);
+            color: white;
+            font-size: 4em;
+            border-radius: 50%;
+        }
+        .healthbar{
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            height: 20px;
+            width: 200px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 10px;
+            transition: 1s;
+        }
+        #energylevel{
+            height: 20px;
+            width: 100%;
+            background: rgba(0, 255, 0, 0.9);
+            border: none;
+            border-radius: 10px;
+            transition: 1s;
+        }
+        #camararotationdegreerange{
+            -webkit-appearance: none;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+        #camararotationdegreerange::-webkit-slider-thumb{
+            -webkit-appearance: none;
+            appearance: none;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 3;
+        }
+        #playerandcamerarotationslider{
+            -webkit-appearance: none;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+        #playerandcamerarotationslider::-webkit-slider-thumb{
+            -webkit-appearance: none;
+            appearance: none;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 3;
+        }
+        #pointspluswordpoints{
+            font-size: 1.5em;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-weight: bold;
+            transition: 1s;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            padding: 10px;
+            height: 50px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 25%;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px; 
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="pointspluswordpoints">points: <div id="pointcontsiner">0</div></div>
+    <input type="range" id="camararotationdegreerange" min="-90" max="90" value="0" step="1">
+    <div class="healthbar">
+        <div id="energylevel"></div>
+    </div>
+    <input type="range" id="playerandcamerarotationslider" min="-180" max="180" value="0" step="1">
+    <button id="move"></button>
+    <button id="jumpbutton">^</button>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // onload
+        document.addEventListener("DOMContentLoaded", function () {
+            // local storage get item points
+            let localpoints = localStorage.getItem("points");
+            if (localpoints){
+                let pointcontsiner = document.getElementById('pointcontsiner');
+                pointcontsiner.textContent = localpoints;
+            }
+        });
+        // Grundlegende Three.js-Szene einrichten
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        const textureLoader = new THREE.TextureLoader();
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let selectedObject = undefined;
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true; // Schatten aktivieren
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Schattenqualität verbessern
+        document.body.appendChild(renderer.domElement);
+
+        let onObjectSelected = undefined;
+
+        // Licht hinzufügen
+        const mainLight = new THREE.PointLight(0xffffff, 1, 85);
+        mainLight.position.set(70, 10, 20);
+        mainLight.castShadow = true; // Schatten für das Licht aktivieren
+
+        // Schatten-Einstellungen für das Licht
+        mainLight.shadow.mapSize.width = 4000; // Erhöhung der Auflösung der Schattenmap
+        mainLight.shadow.mapSize.height = 4000;
+        mainLight.shadow.camera.near = 0.5;
+        mainLight.shadow.camera.far = 50;
+
+        scene.add(mainLight);
+        scene.add(new THREE.AmbientLight(0x404040)); // Umgebungslicht
+
+        // Decke hinzufügen
+        const CeilingTexture = textureLoader.load("Zementwall.png", (texture) => {
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(1, 1);
+        });
+        const ceilingGeometry = new THREE.PlaneGeometry(200, 200);
+        /*const ceilingMaterial = new THREE.ShadowMaterial({ color: 0xfff, opacity: 0.5 }); */
+        const ceilingMaterial = new THREE.MeshStandardMaterial({ map: CeilingTexture });
+        const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.y = 50; // Positioniere die Decke oben
+        ceiling.receiveShadow = true; // Die Decke empfängt Schatten
+        scene.add(ceiling);
+
+        // Viele Lichter an der Decke hinzufügen
+        const numLights = 5;
+        const lightDistance = 30;
+        for (let i = 0; i < numLights; i++) {
+            const ceilingLight = new THREE.PointLight(0xffffff, 1.5, 30);
+            const angle = (i / numLights) * Math.PI * 2;
+            const x = Math.cos(angle) * lightDistance;
+            const z = Math.sin(angle) * lightDistance;
+            const light = new THREE.PointLight(0xffffff, 1.5, 40);
+            light.position.set(x, 30, z);
+            light.castShadow = true;
+
+            light.shadow.mapSize.width = 1000;
+            light.shadow.mapSize.height = 1000;
+            light.shadow.camera.near = 0.5;
+            light.shadow.camera.far = 50;
+
+            scene.add(light);
+        }
+
+        // Boden hinzufügen
+        const floorGeometry = new THREE.PlaneGeometry(200, 200);
+        const floorTexture = textureLoader.load("IMG_6743.jpeg", (texture) => {
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(1, 1);
+        });
+        const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = - Math.PI / 2;
+        floor.position.y = 0; // Positioniere den Boden auf Höhe 0
+        floor.receiveShadow = true; // Der Boden empfängt Schatten
+        floor.userData = { type: "floor" };
+        scene.add(floor);
+
+        // Äußere Wände (grenzwertige Wände) hinzufügen
+        const wallTexture = textureLoader.load("Zementwall.png", (texture) => {
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(1, 1);
+        });
+        const wallMaterial = new THREE.MeshStandardMaterial({ map: wallTexture });
+        const walls = [];
+
+        // Große äußere Wände
+        const outerWalls = [
+            new THREE.Mesh(new THREE.BoxGeometry(200, 50, 1), wallMaterial), // Front
+            new THREE.Mesh(new THREE.BoxGeometry(200, 50, 1), wallMaterial), // Back
+            new THREE.Mesh(new THREE.BoxGeometry(1, 50, 200), wallMaterial), // Left
+            new THREE.Mesh(new THREE.BoxGeometry(1, 50, 200), wallMaterial)  // Right
+        ];
+        outerWalls[0].position.set(0, 25, -100);
+        outerWalls[1].position.set(0, 25, 100);
+        outerWalls[2].position.set(-100, 25, 0);
+        outerWalls[3].position.set(100, 25, 0);
+        outerWalls.forEach(wall => {
+            wall.castShadow = true; // Wände werfen Schatten
+            wall.receiveShadow = true; // Wände empfangen Schatten
+            scene.add(wall);
+            walls.push(wall);
+        });
+
+        // Labyrinth-Wände erstellen
+        const createMaze = () => {
+            const mazeWalls = [];
+            const mazeSize = 75; // Größe des Labyrinths
+            const wallHeight = 15; // Höhe der Wände
+            const wallThickness = 1;
+            const spacing = 10; // Abstand zwischen den Wänden
+
+            for (let i = -mazeSize; i < mazeSize; i += spacing) {
+                for (let j = -mazeSize; j < mazeSize; j += spacing) {
+                    if ((Math.random() > 0.5) && (i !== 0 || j !== 0)) { // Zufällige Entscheidung, ob Wand gebaut werden soll
+                        const wallGeometry = new THREE.BoxGeometry(wallThickness, wallHeight, spacing);
+                        const wallMaterial2 = new THREE.MeshStandardMaterial({ map: wallTexture });
+                        const wall = new THREE.Mesh(wallGeometry, wallMaterial2);
+                        wall.position.set(i, wallHeight / 2, j);
+                        wall.castShadow = true; // Wände werfen Schatten
+                        wall.receiveShadow = true; // Wände empfangen Schatten
+                        const wrotation = Math.random() * Math.PI * 2;
+                        wall.rotation.y = wrotation;
+                        // user data type equal wall
+                        wall.userData = { type: "wall" };
+                        scene.add(wall);
+                        mazeWalls.push(wall);
+                    }
+                }
+            }
+            return mazeWalls;
+        };
+
+        const mazeWalls = createMaze();
+        mazeWalls.forEach(wall => walls.push(wall));
+
+
+
+        const player = new THREE.Group();
+
+        // user data type equal player
+
+        player.userData = { type: "player" };
+
+        const armTexture = textureLoader.load("IMG_6746.jpeg", (texture) => {
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(1, 1);
+        });
+        const armMaterial = new THREE.MeshStandardMaterial({ map: armTexture });
+
+        const legTexture = textureLoader.load("IMG_6748.jpeg", (texture) => {
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(1, 1);
+        });
+        const legMaterial = new THREE.MeshStandardMaterial({ map: legTexture });
+
+        const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+
+        const headMaterial = new THREE.MeshStandardMaterial({ color: 0x000 });
+
+        // Körper
+        const bodyGeometry = new THREE.BoxGeometry(1, 1.5, 0.9);
+        const body = new THREE.Mesh(bodyGeometry, armMaterial);
+        body.position.y = 1.5;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        body.userData = { type: "goodguy" };
+        player.add(body);
+
+        // Kopf
+        const headGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const head = new THREE.Mesh(headGeometry, headMaterial);
+        head.position.y = 2.5;
+        head.castShadow = true;
+        head.receiveShadow = true;
+        head.userData = { type: "goodguy" };
+        player.add(head);
+
+        // Arme
+        const armGeometry = new THREE.BoxGeometry(0.5, 1.5, 0.5);
+        const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+        leftArm.position.set(-0.75, 1.25, 0);
+        leftArm.castShadow = true;
+        leftArm.receiveShadow = true;
+        leftArm.userData = { type: "goodguy" };
+        player.add(leftArm);
+
+        const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+        rightArm.position.set(0.75, 1.25, 0);
+        rightArm.castShadow = true;
+        rightArm.receiveShadow = true;
+        rightArm.userData = { type: "goodguy" };
+        player.add(rightArm);
+
+        // Beine
+        const legGeometry = new THREE.BoxGeometry(0.5, 2, 0.5);
+        const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+        leftLeg.position.set(-0.25, 0, 0);
+        leftLeg.castShadow = true;
+        leftLeg.receiveShadow = true;
+        leftLeg.userData = { type: "goodguy" };
+        player.add(leftLeg);
+
+        const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+        rightLeg.position.set(0.25, 0, 0);
+        rightLeg.castShadow = true;
+        rightLeg.receiveShadow = true;
+        rightLeg.userData = { type: "goodguy" };
+        player.add(rightLeg);
+
+        player.position.y = 1;
+        const playerfield = new THREE.Group();
+        /*enemyBody.position = player.position.clone();*/
+        playerfield.add(player);
+        scene.add(playerfield);
+
+        // Kamera Position
+        camera.position.set(0, 4, 6); // Kamera näher an den Spieler
+        camera.lookAt(player.position);
+        player.add(camera);
+        /* 
+        enemy body */
+        const enemy = new THREE.Group();
+
+        const enemyBody = player.clone();
+        /*enemyBody.position = player.position.clone();*/
+        enemy.add(enemyBody);
+        /* make the meterial of the enemy body children red */
+        enemyBody.children.forEach(child => {
+            /* delete the materisl and change it */
+            child.material = new THREE.MeshStandardMaterial({ color: 0x000 });
+            /*child.material.color.set(0xff0000);*/
+            child.userData = { type: "badguy" };
+        });
+        /*const healthBarContainer = new THREE.Group();
+        let healthBarGeometry = new THREE.PlaneGeometry(1, 0.1);
+        const healthBarMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });//BasicMaterial
+        const healthBar = new THREE.Mesh(healthBarGeometry, healthBarMaterial);
+        healthBarContainer.add(healthBar);
+        healthBarContainer.position.set(0, 3, 0);  // Position über der feindlichen Figur
+        healthBarContainer.userData = { type: "health" };
+        healthBar.userData = { type: "health" };*/
+        const healthBarContainer = new THREE.Group();
+        let healthBarGeometry = new THREE.PlaneGeometry(1, 0.1);
+        const healthBarMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+            side: THREE.DoubleSide  // Sichtbarkeit von beiden Seiten
+        });
+        const healthBar = new THREE.Mesh(healthBarGeometry, healthBarMaterial);
+        healthBarContainer.add(healthBar);
+        healthBarContainer.position.set(0, 3, 0);  // Position über der feindlichen Figur
+        healthBarContainer.userData = { type: "health" };
+        healthBar.userData = { type: "health" };
+
+        // Optional: Falls die Healthbar auch in der Hauptszene sichtbar sein soll
+        scene.add(healthBarContainer);
+
+        
+        // make the health bar visable from every side without look at
+
+        /*enemy.userData = { type: "badguy" };*/
+        scene.add(enemy);
+
+        // Gesundheitsanzeige erstellen
+        scene.add(healthBarContainer);
+
+        // Gesundheitsvariablen
+        let enemyHealth = 100;
+        const maxEnemyHealth = 100;
+
+        // Geschwindigkeit der feindlichen Figur
+        const enemySpeed = 0.05;
+
+        // Gesundheitsanzeige aktualisieren
+        const updateHealthBar = () => {
+            const healthRatio = enemyHealth / maxEnemyHealth;
+            healthBar.scale.x = healthRatio;
+            healthBar.material.color.setHex(healthRatio > 0.5 ? 0x00ff00 : healthRatio > 0.2 ? 0xffff00 : 0xff0000);
+        };
+
+        const updateHealthBarPosition = () => {
+            healthBarContainer.position.set(enemy.position.x, enemy.position.y + 5, enemy.position.z);
+        };
+        // Feindliche Figur neu spawnen
+        const respawnEnemy = () => {
+            enemy.position.set(Math.random() * 50 - 25, 0, Math.random() * 50 - 25);
+            enemyHealth = maxEnemyHealth;
+            updateHealthBar();
+        };
+
+        // Feindliche Figur folgt dem Spieler
+        const enemyFollowPlayer = () => {
+            const direction = new THREE.Vector3();
+            direction.subVectors(playerfield.position, enemy.position).normalize();
+
+            // Raycaster zur Überprüfung von Wänden zwischen Feind und Spieler
+            raycaster.set(enemy.position, direction);
+            const intersects = raycaster.intersectObjects(walls, true);
+
+            if (intersects.length === 0 || intersects[0].distance > enemy.position.distanceTo(playerfield.position)) {
+                // Keine Wände im Weg, Feind bewegt sich in Richtung des Spielers
+                enemy.position.add(direction.multiplyScalar(enemySpeed));
+            }
+        };
+
+        respawnEnemy();
+        // Überprüfen der Gesundheit der feindlichen Figur
+        const checkEnemyHealth = () => {
+            if (enemyHealth <= 0) {
+                let pointcontsiner = document.getElementById('pointcontsiner');
+                pointcontsiner.textContent = parseInt(pointcontsiner.textContent) + 10;
+                // localstorage set item points
+                localStorage.setItem('points', pointcontsiner.textContent);
+                respawnEnemy();
+            }
+        };
+
+        // Kollisionserkennung und Sprunglogik anpassen
+        function checkCollision(player, walls) {
+            const playerBox = new THREE.Box3().setFromObject(player);
+
+            for (const wall of walls) {
+                const wallBox = new THREE.Box3().setFromObject(wall);
+
+                if (playerBox.intersectsBox(wallBox)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Touch-Ereignisse für die Bewegung
+        let touchStart = null;
+
+        let windowmove = document.getElementById('move');
+        const animateArmsAndLegs = (leftArm, rightArm, leftLeg, rightLeg, time) => {
+            const armSwing = Math.sin(time * 5) * 0.5;  // Schwingbewegung der Arme
+            const legSwing = Math.cos(time * 5) * 0.5;  // Schwingbewegung der Beine
+
+            // Arme schwingen an den Schultern
+            leftArm.rotation.x = armSwing;
+            rightArm.rotation.x = -armSwing;
+            leftArm.position.z = -(armSwing / 2);
+            rightArm.position.z = (armSwing / 2);
+
+            // Beine schwingen an den Hüften
+            leftLeg.rotation.x = legSwing;
+            rightLeg.rotation.x = -legSwing;
+            leftLeg.position.z = -(legSwing / 2);
+            rightLeg.position.z = (legSwing / 2);
+        };
+        let ismovingatthemoment = false;
+
+        window.addEventListener('touchstart', (event) => {
+            if (event.touches.length > 0) {
+                touchStart = event.touches[0];
+
+                // Mauskoordinaten berechnen
+                mouse.x = (touchStart.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(touchStart.clientY / window.innerHeight) * 2 + 1;
+
+                // Raycaster von der Kamera aus setzen
+                raycaster.setFromCamera(mouse, camera);
+
+                // Schnittpunkte mit den Objekten in der Szene ermitteln
+                const intersections = raycaster.intersectObjects(scene.children, true);
+
+                // Überprüfen, ob Schnittpunkte gefunden wurden
+                if (intersections && intersections.length > 0) {
+                    console.log(intersections[0]);
+                    if (selectedObject) selectedObject.material.emissive.setHex(0);
+                    selectedObject = intersections[0].object;
+
+                    console.log(selectedObject.userData);
+                    // if (selectedObject.userData.type === "wall")
+                    if (selectedObject.userData.type == "badguy"){
+                        selectedObject.material.emissive.setHex(0xe40600);
+                        enemyHealth -= 2;
+                        setTimeout(() => {
+                            selectedObject.material.emissive.setHex(0);
+                        }, 100);
+                    }
+                } else {
+                    console.log('null');
+                }
+            }
+        });
+
+        window.addEventListener('touchend', () => {
+            touchStart = null;
+            ismovingatthemoment = false;
+        });
+        let playerhealth = 100;
+        const energylevelfp = document.getElementById('energylevel');
+
+        function checkenemydistancetoplayer() {
+            if (enemy.position.distanceTo(playerfield.position) < 2) {
+                setTimeout(() => {
+                    if (playerhealth > 0) {
+                        playerhealth -= 5;
+                        energylevelfp.style.width = `${playerhealth}%`;
+                        let pointcontsiner = document.getElementById('pointcontsiner');
+                        if (parseInt(pointcontsiner.textContent) >= 1){
+                            pointcontsiner.textContent = parseInt(pointcontsiner.textContent) - 1;
+                            localStorage.setItem('points', pointcontsiner.textContent);
+                        }
+                        checkenemydistancetoplayer();
+                    }else{
+                        enemy.position.set(Math.random() * 50 - 25, 0, Math.random() * 50 - 25);
+                        player.position.set(0, 1, 0);
+                        playerhealth = 100;
+                        energylevelfp.style.width = `${playerhealth}%`;
+                        checkenemydistancetoplayer();
+                    }
+                }, 500);
+            }else {
+                setTimeout(() => {
+                    if (playerhealth <= 100){
+                        playerhealth += 1;
+                        energylevelfp.style.width = `${playerhealth}%`;
+                    }
+                    checkenemydistancetoplayer();
+                }, 500);
+            }
+        }
+
+        checkenemydistancetoplayer();
+
+
+        const clock = new THREE.Clock();
+        /*function ismovingfunction(){
+            setTimeout(() => {
+                if (ismovingatthemoment == true){
+                    const time = clock.getElapsedTime();
+                    animateArmsAndLegs(leftArm, rightArm, leftLeg, rightLeg, time);
+                    ismovingfunction();
+                }
+            },2000);
+        }
+        ismovingfunction();*/
+        windowmove.addEventListener('touchmove', (event) => {
+            if (touchStart) {
+                ismovingatthemoment = true;
+                /*const touchEnd = event.touches[0];
+                const dx = touchEnd.clientX - touchStart.clientX;
+                const dy = touchEnd.clientY - touchStart.clientY;
+
+                // Temporäre Position für Kollisionserkennung
+                // check player rotation to ajust the position controls 
+                const tempX = player.position.x + dx * 0.1;
+                const tempZ = player.position.z - dy * 0.1;
+
+                // Spielerposition aktualisieren
+
+                player.position.x = tempX;
+                player.position.z = tempZ;
+
+                // Überprüfen, ob der Spieler kollidiert
+                if (checkCollision(player, walls)) {
+                    // Rücksetzen der Position bei Kollision
+                    player.position.x -= dx * 0.1;
+                    player.position.z += dy * 0.1;
+                }
+
+                touchStart = touchEnd;*/
+                const touchEnd = event.touches[0];
+                const dx = touchEnd.clientX - touchStart.clientX;
+                const dy = touchEnd.clientY - touchStart.clientY;
+
+                // Temporäre Position für Kollisionserkennung
+                const tempX = player.position.x + dx * 0.1;
+                const tempZ = player.position.z - dy * 0.1;
+
+                // Spielerposition aktualisieren
+                player.position.x = tempX;
+                player.position.z = tempZ;
+
+                // Überprüfen, ob der Spieler kollidiert
+                /*if (checkCollision(player, walls)){
+                    // Rücksetzen der Position bei Kollision
+                    player.position.x -= dx * 0.1;
+                    player.position.z += dy * 0.1;
+                }*/
+                if (checkCollision(player, walls)) {
+                    // Rücksetzen der Position bei Kollision
+                    player.position.x -= dx * 0.1;
+                    player.position.z += dy * 0.1;
+                    /*playerfield.position.x -= dx * 0.1;
+                    playerfield.position.z += dy * 0.1;*/
+                }
+                if (checkCollision(playerfield, walls)) {
+                    // Rücksetzen der Position bei Kollision
+                    
+                    playerfield.position.x -= dx * 0.1;
+                    playerfield.position.z += dy * 0.1;
+                    player.position.x -= dx * 0.1;
+                    player.position.z += dy * 0.1;
+                }
+
+                touchStart = touchEnd;
+            }
+        });
+
+
+
+        // Sprunglogik
+        let isJumping = false;
+        let jumpVelocity = 0;
+        const gravity = -0.05;
+        const jumpStrength = 1;
+        let groundHeight = 1; // Höhe des Bodens
+
+        let jumpbutton = document.getElementById("jumpbutton");
+        jumpbutton.addEventListener('click', () => {
+            if (!isJumping) {
+                isJumping = true;
+                jumpVelocity = jumpStrength;
+            }
+        });
+        // Render-Schleife
+        const animate = function () {
+            requestAnimationFrame(animate);
+
+            enemyFollowPlayer();
+            checkEnemyHealth();
+            updateHealthBarPosition();
+
+            updateHealthBar();
+
+            const time = clock.getElapsedTime();
+
+            healthBarContainer.lookAt(camera.position);
+            /*healthBarContainer.rotation.y = THREE.MathUtils.degToRad(180);*/
+            enemy.lookAt(body.position);
+            /* dont rotate x enemy */
+            
+            
+            if (ismovingatthemoment) {
+                animateArmsAndLegs(leftArm, rightArm, leftLeg, rightLeg, time);
+            }
+
+            // Sprunglogik und Schwerkraft
+            if (isJumping) {
+                player.position.y += jumpVelocity;
+                jumpVelocity += gravity;
+
+                // Überprüfen, ob der Spieler den Boden oder eine Wand erreicht
+                let onGround = false;
+                if (player.position.y <= groundHeight) {
+                    player.position.y = groundHeight;
+                    isJumping = false;
+                    jumpVelocity = 0;
+                    onGround = true;
+                }
+
+                walls.forEach(wall => {
+                    const playerBox = new THREE.Box3().setFromObject(player);
+                    const wallBox = new THREE.Box3().setFromObject(wall);
+
+                    if (playerBox.intersectsBox(wallBox) && !onGround) {
+                        if (player.position.y > wall.position.y + wall.geometry.parameters.height / 2) {
+                            player.position.y = wall.position.y + wall.geometry.parameters.height / 2 + player.geometry.parameters.height / 2;
+                            isJumping = false;
+                            jumpVelocity = 0;
+                            groundHeight = player.position.y;
+                        }
+                    }
+                });
+            }
+
+            // Kamera folgt dem Spieler
+            /*camera.position.x = player.position.x;
+            camera.position.z = player.position.z + 6;/* + 6;*/
+            /*camera.position.y = player.position.y + 4;/* + 4;*/
+            /*camera.lookAt(player.position);*/
+
+            // kamara ritation range 
+
+            const camararotationdegreerange = document.getElementById('camararotationdegreerange');
+            const krotation = parseInt(camararotationdegreerange.value);
+
+            let playerandcamerarotationslider = document.getElementById('playerandcamerarotationslider');
+
+            let pacrs = playerandcamerarotationslider.value;
+            /*scene.rotation.y = THREE.MathUtils.degToRad(pacrs);*/
+            /*camera.rotation.y = THREE.MathUtils.degToRad(pacrs);*/
+            /* player */
+            /*const playerWorldPosition = player.position.clone().applyMatrix4(player.matrixWorld);
+            playerfield.position.set(playerWorldPosition.x, playerWorldPosition.z);*/
+            // rotate playerfield y from where the player is standing
+            // get player position in scene unrelative to playerfield
+
+
+            
+            const playerWorldPosition = player.position.clone().applyMatrix4(player.matrixWorld);
+            // position the playerfield at the player position unrelative to the playerfield in the scene
+            playerfield.position.x = playerWorldPosition.x;
+            playerfield.position.z = playerWorldPosition.z;
+            // make the player position x and z 0 for the group to be at the player position
+            player.position.x = 0;
+            player.position.z = 0;
+            playerfield.rotation.y = THREE.MathUtils.degToRad(pacrs);
+
+
+                
+
+            // Berechne die Weltposition des Spielers
+
+
+
+
+            // go back - position z - pacrs
+
+            camera.rotation.x = THREE.MathUtils.degToRad(krotation);
+            head.rotation.x = THREE.MathUtils.degToRad(krotation);
+
+            renderer.render(scene, camera);
+        };
+        animate();
+
+    </script>
+</body>
+</html>
