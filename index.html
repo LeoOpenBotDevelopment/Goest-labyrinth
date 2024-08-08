@@ -577,8 +577,11 @@
                         playerhealth = 100;
                         energylevelfp.style.width = `${playerhealth}%`;
                         let pointcontsiner = document.getElementById('pointcontsiner');
-                        if (parseInt(pointcontsiner.textContent) >= 10){
-                            pointcontsiner.textContent = parseInt(pointcontsiner.textContent) - 10;
+                        if (parseInt(pointcontsiner.textContent) >= 30){
+                            pointcontsiner.textContent = parseInt(pointcontsiner.textContent) - 30;
+                            localStorage.setItem('points', pointcontsiner.textContent);
+                        }else {
+                            pointcontsiner.textContent = "0";
                             localStorage.setItem('points', pointcontsiner.textContent);
                         }
                         checkenemydistancetoplayer();
