@@ -15,7 +15,7 @@
         }
         #camararotationdegreerange {
             position: fixed;
-            top: 65%;
+            bottom: 40%;
             right: -2%;
             width: 20%;
             transform: rotate(90deg);
@@ -28,16 +28,18 @@
             height: 150px;
             width: 150px;
             border: none;
-            background: none;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
             color: white;
             font-size: 4em;
             z-index: 999;
+            text-align: center;
         }
         #playerandcamerarotationslider{
             position: fixed;
-            left: 265px;
-            bottom: 5%;
-            width: 40%;
+            bottom: 290px;
+            left: 40px;
+            width: 200px;
             z-index: 999;
         }
         #move{
@@ -146,7 +148,7 @@
     </div>
     <input type="range" id="playerandcamerarotationslider" min="-180" max="180" value="0" step="1">
     <button id="move"></button>
-    <button id="jumpbutton">^</button>
+    <button id="jumpbutton"></button>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // onload
