@@ -509,7 +509,7 @@
         const energylevelfp = document.getElementById('energylevel');
 
         function checkenemydistancetoplayer() {
-            if (enemy.position.distanceTo(player.position) < 2) {
+            if (enemy.position.distanceTo(playerfield.position) < 2) {
                 setTimeout(() => {
                     if (playerhealth > 0) {
                         playerhealth -= 10;
@@ -526,9 +526,9 @@
             }else {
                 setTimeout(() => {
                     if (playerhealth <= 100){
-                        
+                        playerhealth += 1;
+                        energylevelfp.style.width = `${playerhealth}%`;
                     }
-        
                     checkenemydistancetoplayer();
                 }, 500);
             }
@@ -603,6 +603,8 @@
                     
                     playerfield.position.x -= dx * 0.1;
                     playerfield.position.z += dy * 0.1;
+                    player.position.x -= dx * 0.1;
+                    player.position.z += dy * 0.1;
                 }
 
                 touchStart = touchEnd;
