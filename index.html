@@ -560,22 +560,27 @@
         const energylevelfp = document.getElementById('energylevel');
 
         function checkenemydistancetoplayer() {
-            if (enemy.position.distanceTo(playerfield.position) < 2) {
+            if (enemy.position.distanceTo(playerfield.position) < 15) {
                 setTimeout(() => {
                     if (playerhealth > 0) {
                         playerhealth -= 5;
                         energylevelfp.style.width = `${playerhealth}%`;
-                        let pointcontsiner = document.getElementById('pointcontsiner');
+                        /*let pointcontsiner = document.getElementById('pointcontsiner');
                         if (parseInt(pointcontsiner.textContent) >= 1){
                             pointcontsiner.textContent = parseInt(pointcontsiner.textContent) - 1;
                             localStorage.setItem('points', pointcontsiner.textContent);
-                        }
+                        }*/
                         checkenemydistancetoplayer();
                     }else{
                         enemy.position.set(Math.random() * 50 - 25, 0, Math.random() * 50 - 25);
                         player.position.set(0, 1, 0);
                         playerhealth = 100;
                         energylevelfp.style.width = `${playerhealth}%`;
+                        let pointcontsiner = document.getElementById('pointcontsiner');
+                        if (parseInt(pointcontsiner.textContent) >= 10){
+                            pointcontsiner.textContent = parseInt(pointcontsiner.textContent) - 10;
+                            localStorage.setItem('points', pointcontsiner.textContent);
+                        }
                         checkenemydistancetoplayer();
                     }
                 }, 500);
