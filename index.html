@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Spiel mit Three.js</title>
+    <title>Goast Labyrinth</title>
     <style>
         body { margin: 0; }
         canvas {
@@ -307,7 +307,7 @@
                         const wall = new THREE.Group();
                         wallv.position.set(i, wallHeight / 2, j);
                         // set the wall floor on top of the wall
-                        wallfloor.position.set(i, wallHeight, j);
+                        wallfloor.position.set(i, (wallHeight + 0.5), j);
                         wallv.castShadow = true; // Wände werfen Schatten
                         wallv.receiveShadow = true; // Wände empfangen Schatten
                         wallfloor.castShadow = true;
@@ -336,8 +336,8 @@
             // random wall height max height 10
             let platformheight = 1;
             let platformthickness = 4;
-            let platformspawnheught = Math.floor(Math.random() * 35) + 25;
-            let spacing = 12;
+            let platformspawnheught = Math.floor(Math.random() * 40) + 26;
+            let spacing = 15;
 
             for (let i = -platformspawnarea; i < platformspawnarea; i += spacing) {
                 for (let j = -platformspawnarea; j < platformspawnarea; j += spacing) {
@@ -704,7 +704,7 @@
                 player.position.x = tempX;
                 player.position.z = tempZ;
 
-                
+
                 /*if (checkCollision(leftLeg, walls)) {// player
                     // Rücksetzen der Position bei Kollision
                     player.position.x -= dx * 0.05;
@@ -751,6 +751,26 @@
                     player.position.x -= dx * 0.05;
                     player.position.z += dy * 0.05;
                 }
+                if (checkCollision(playerfield, walltops)) {
+                    // make the player position y on top of the wall top
+                    let onewalltop;
+                    walltops.forEach(walltop => {
+                        if (walltop.position.y) {
+                            onewalltop = walltop;
+                        }
+                    })
+                    player.position.y = player.position.y;/*onewalltop.position.y + 1.5;*/
+                    groundHeight = player.position.y;/*onewalltop.position.y + 1.5;*/
+
+                }else if(!checkCollision(playerfield, walltops)) {
+                    groundHeight = 1;
+                    if(!isJumping){
+                        if (player.position.y > groundHeight) {
+                            player.position.y += (gravity * 16);
+
+                        }
+                    }
+                }
                 ismovingnow = true;
 
                 touchStart = touchEnd;
@@ -758,7 +778,7 @@
         });
         let camararotationpadv = document.getElementById('camararotationpad');
         camararotationpadv.addEventListener('touchmove', (event) => {
-            if (touchStart || ismovingnow == false) {
+            if (touchStart && ismovingnow == false) {
                 ismovingatthemoment = true;
                 const touchEnd = event.touches[0];
                 const dy = touchEnd.clientX - touchStart.clientX;
@@ -772,7 +792,7 @@
                 camera.rotation.x = tempX;
                 head.rotation.x = tempX;
                 playerfield.rotation.y = tempZ;
-                
+
                touchStart = touchEnd;
             }
         });
@@ -813,6 +833,27 @@
 
             if (ismovingatthemoment) {
                 animateArmsAndLegs(leftArm, rightArm, leftLeg, rightLeg, time);
+            }
+
+            if (checkCollision(playerfield, walltops)) {
+                // make the player position y on top of the wall top
+                let onewalltop;
+                walltops.forEach(walltop => {
+                    if (walltop.position.y) {
+                        onewalltop = walltop;
+                    }
+                })
+                player.position.y = player.position.y;/*onewalltop.position.y + 1.5;*/
+                groundHeight = player.position.y;/*onewalltop.position.y + 1.5;*/
+
+            }else if(!checkCollision(playerfield, walltops)) {
+                groundHeight = 1;
+                if(!isJumping){
+                    if (player.position.y > groundHeight) {
+                        player.position.y += (gravity * 16);
+
+                    }
+                }
             }
 
             // Sprunglogik und Schwerkraft
@@ -861,26 +902,7 @@
 
             let pacrs = playerandcamerarotationslider.value;
 
-            if (checkCollision(playerfield, walltops)) {
-                // make the player position y on top of the wall top
-                let onewalltop;
-                walltops.forEach(walltop => {
-                    if (walltop.position.y) {
-                        onewalltop = walltop;
-                    }
-                })
-                player.position.y = player.position.y;/*onewalltop.position.y + 1.5;*/
-                groundHeight = player.position.y;/*onewalltop.position.y + 1.5;*/
-
-            }else if(!checkCollision(playerfield, walltops)) {
-                groundHeight = 1;
-                if(!isJumping){
-                    if (player.position.y > groundHeight) {
-                        player.position.y += (gravity * 16);
-
-                    }
-                }
-            }
+            
             /*scene.rotation.y = THREE.MathUtils.degToRad(pacrs);*/
             /*camera.rotation.y = THREE.MathUtils.degToRad(pacrs);*/
             /* player */
