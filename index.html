@@ -698,7 +698,7 @@
 
                 // Temporäre Position für Kollisionserkennung
                 const tempX = player.position.x + dx * 0.05;
-                const tempZ = player.position.z - dy * 0.05;
+                const tempZ = player.position.z + dy * 0.05;
 
                 // Spielerposition aktualisieren
                 player.position.x = tempX;
@@ -723,17 +723,17 @@
                     // Rücksetzen der Position bei Kollision
 
                     playerfield.position.x -= dx * 0.05;
-                    playerfield.position.z += dy * 0.05;
+                    playerfield.position.z -= dy * 0.05;
                     player.position.x -= dx * 0.05;
-                    player.position.z += dy * 0.05;
+                    player.position.z -= dy * 0.05;
                 }
                 if (checkCollision(playerfield, walls)) {//playerfield
                     // Rücksetzen der Position bei Kollision
 
                     playerfield.position.x -= dx * 0.05;
-                    playerfield.position.z += dy * 0.05;
+                    playerfield.position.z -= dy * 0.05;
                     player.position.x -= dx * 0.05;
-                    player.position.z += dy * 0.05;
+                    player.position.z -= dy * 0.05;
                 }
                 /*if (checkCollision(rightArm, walls)) {//playerfield
                     // Rücksetzen der Position bei Kollision
