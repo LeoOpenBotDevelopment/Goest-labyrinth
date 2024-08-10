@@ -232,7 +232,7 @@
             const x = Math.cos(angle) * lightDistance;
             const z = Math.sin(angle) * lightDistance;
             const light = new THREE.PointLight(0xffffff, 1.5, 30);
-            light.position.set(x, 30, z);
+            light.position.set(x, 40, z);
             light.castShadow = true;
 
             light.shadow.mapSize.width = 1000;
@@ -270,10 +270,10 @@
 
         // Große äußere Wände
         const outerWalls = [
-            new THREE.Mesh(new THREE.BoxGeometry(200, 50, 1), wallMaterial), // Front
-            new THREE.Mesh(new THREE.BoxGeometry(200, 50, 1), wallMaterial), // Back
-            new THREE.Mesh(new THREE.BoxGeometry(1, 50, 200), wallMaterial), // Left
-            new THREE.Mesh(new THREE.BoxGeometry(1, 50, 200), wallMaterial)  // Right
+            new THREE.Mesh(new THREE.BoxGeometry(200, 80, 1), wallMaterial), // Front
+            new THREE.Mesh(new THREE.BoxGeometry(200, 80, 1), wallMaterial), // Back
+            new THREE.Mesh(new THREE.BoxGeometry(1, 80, 200), wallMaterial), // Left
+            new THREE.Mesh(new THREE.BoxGeometry(1, 80, 200), wallMaterial)  // Right
         ];
         outerWalls[0].position.set(0, 25, -100);
         outerWalls[1].position.set(0, 25, 100);
@@ -719,7 +719,7 @@
                     /*playerfield.position.x -= dx * 0.1;
                     playerfield.position.z += dy * 0.1;*//*
                 }*/
-                if (checkCollision(body, walls)) {//playerfield
+                if (checkCollision(player, walls)) {//playerfield
                     // Rücksetzen der Position bei Kollision
 
                     playerfield.position.x -= dx * 0.05;
@@ -727,7 +727,7 @@
                     player.position.x -= dx * 0.05;
                     player.position.z += dy * 0.05;
                 }
-                if (checkCollision(leftArm, walls)) {//playerfield
+                if (checkCollision(playerfield, walls)) {//playerfield
                     // Rücksetzen der Position bei Kollision
 
                     playerfield.position.x -= dx * 0.05;
@@ -735,7 +735,7 @@
                     player.position.x -= dx * 0.05;
                     player.position.z += dy * 0.05;
                 }
-                if (checkCollision(rightArm, walls)) {//playerfield
+                /*if (checkCollision(rightArm, walls)) {//playerfield
                     // Rücksetzen der Position bei Kollision
 
                     playerfield.position.x -= dx * 0.05;
@@ -750,7 +750,7 @@
                     playerfield.position.z += dy * 0.05;
                     player.position.x -= dx * 0.05;
                     player.position.z += dy * 0.05;
-                }
+                }*/
                 if (checkCollision(playerfield, walltops)) {
                     // make the player position y on top of the wall top
                     let onewalltop;
